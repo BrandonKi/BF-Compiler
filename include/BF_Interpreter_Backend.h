@@ -21,7 +21,7 @@ class BF_Interpreter_Backend : public Backend {
 
         }
 
-        virtual void compile(std::string* code_p) {
+        virtual void compile(std::string* code_p, Platform platform, Mode mode) {
             code = code_p;
             for(instruction_pointer = 0; instruction_pointer < code->size(); instruction_pointer++) {
                 switch((*code)[instruction_pointer]) {
@@ -51,6 +51,10 @@ class BF_Interpreter_Backend : public Backend {
                         break;
                 }
             }
+        }
+
+        virtual void jit_compile(std::string* code_p) {
+            
         }
 
         void dp_inc() {

@@ -2,7 +2,20 @@
 #define BACKEND_H_GUARD
 
 #include <vector>
+#include <string>
 #include <cstdint>
+
+enum Platform {
+    x86_64,
+    arm
+};
+
+enum Mode {
+    interpret,
+    jit,
+    pe,
+    elf
+};
 
 class Backend {
     private:
@@ -11,7 +24,7 @@ class Backend {
     public:
         Backend() {}
 
-        virtual void compile(std::string*) = 0;
+        virtual void compile(std::string*, Platform, Mode) = 0;
 
          void dp_inc();
          void dp_dec();

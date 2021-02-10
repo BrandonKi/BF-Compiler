@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-#include <ranges>
 
 #include "Backend.h"
 #include "BF_Interpreter_Backend.h"
@@ -17,23 +16,11 @@ using u8  = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
-using f32 = float_t;
-using f64 = double_t;
+using f32 = float;
+using f64 = double;
 
 class BFCompiler {
     public:
-
-        enum Platform {
-            x86_64,
-            arm
-        };
-
-        enum Mode {
-            interpret,
-            jit,
-            pe,
-            elf
-        };
 
         BFCompiler(std::string&, Platform, Mode);
 
