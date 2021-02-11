@@ -18,7 +18,7 @@ enum Mode {
 };
 
 class Backend {
-    private:
+    protected:
         std::vector<uint8_t> bin;
 
     public:

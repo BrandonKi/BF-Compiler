@@ -8,7 +8,7 @@
 
 class BF_Interpreter_Backend : public Backend {
     private:
-        char data[4000];
+        char data[30000];
         size_t data_pointer;
         size_t instruction_pointer;
         std::stack<size_t> loop_stack;
