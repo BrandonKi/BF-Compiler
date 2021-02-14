@@ -5,7 +5,7 @@
 
 class BF_x86_64_Backend : public Backend {
     private:
-        std::string* code;
+        std::string code;
         std::stack<size_t> loop_stack;
 
     public:
@@ -15,14 +15,14 @@ class BF_x86_64_Backend : public Backend {
 
         }
 
-        virtual void compile(std::string* code_p, Platform platform, Mode mode) {
+        virtual void compile(std::string& code_p, Platform platform, Mode mode) {
             code = code_p;
             // xor eax, eax
             bin.push_back(0x31);
             bin.push_back(0xc0);
 
-            for(int i = 0; i < code->size(); i++) {
-                switch((*code)[i]) {
+            for(int i = 0; i < code.size(); i++) {
+                switch(code[i]) {
                     case '>':
                         dp_inc();
                         break;

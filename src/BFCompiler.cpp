@@ -31,6 +31,6 @@ std::string BFCompiler::get_error_message() {
 }
 
 std::vector<u8> BFCompiler::generate_raw() {
-    backend->compile(&data, platform, mode);
+    backend->compile(data, platform, mode);
     return backend->get_bin();
 }

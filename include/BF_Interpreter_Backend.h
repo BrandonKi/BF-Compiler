@@ -12,7 +12,7 @@ class BF_Interpreter_Backend : public Backend {
         size_t data_pointer;
         size_t instruction_pointer;
         std::stack<size_t> loop_stack;
-        std::string* code;
+        std::string code;
 
     public:
         BF_Interpreter_Backend():
@@ -21,10 +21,10 @@ class BF_Interpreter_Backend : public Backend {
 
         }
 
-        virtual void compile(std::string* code_p, Platform platform, Mode mode) {
+        virtual void compile(std::string& code_p, Platform platform, Mode mode) {
             code = code_p;
-            for(instruction_pointer = 0; instruction_pointer < code->size(); instruction_pointer++) {
-                switch((*code)[instruction_pointer]) {
+            for(instruction_pointer = 0; instruction_pointer < code.size(); instruction_pointer++) {
+                switch(code[instruction_pointer]) {
                     case '>':
                         dp_inc();
                         break;
@@ -93,8 +93,8 @@ class BF_Interpreter_Backend : public Backend {
             void jump_to_end_of_loop() {
                 size_t loop_depth = 0;
                 instruction_pointer++;
-                for(; instruction_pointer < code->size(); instruction_pointer++) {
-                    switch((*code)[instruction_pointer]) {
+                for(; instruction_pointer < code.size(); instruction_pointer++) {
+                    switch(code[instruction_pointer]) {
                         case '[':
                             loop_depth++;
                             break;
