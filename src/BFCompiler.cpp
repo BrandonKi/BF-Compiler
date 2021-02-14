@@ -14,6 +14,7 @@ i32 BFCompiler::compile() {
             case jit:
             case pe:
             case elf:
+                backend = new BF_x86_64_Backend{};
                 break;
         }
         switch(platform) {

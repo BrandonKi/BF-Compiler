@@ -7,6 +7,7 @@
 
 #include "Backend.h"
 #include "BF_Interpreter_Backend.h"
+#include "BF_x86_64_Backend.h"
 
 using i8  = int8_t;
 using i16 = int16_t;
