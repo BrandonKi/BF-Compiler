@@ -70,15 +70,17 @@ public:
 
                 internal_link();
 
-                std::vector<uint8_t> preamble = {0x55, 0x48, 0x89, 0xE5, 0x48, 0x81, 0xEC, 0x30, 0x75, 0x00, 0x00, 0x48, 0x31, 0xDB};
+                std::vector<uint8_t> preamble = {0x55, 0x48, 0x89, 0xE5, 0x48, 0x81, 0xEC, 0x30, 0x75, 0x00, 0x00, 0x48, 0x89, 0xe3};
 
-                std::vector<uint8_t> ret_postamble = { 0x48, 0x81, 0xC4, 0x30, 0x75, 0x00, 0x00, 0x31, 0xc0, 0x5D, 0xC3};
+                std::vector<uint8_t> ret_postamble = {0x48, 0x81, 0xC4, 0x30, 0x75, 0x00, 0x00, 0x5D, 0x31, 0xc0, 0xC3};
 
-                std::vector<uint8_t> exit_postamble = {0x5D, 0x48, 0x81, 0xC4, 0x30, 0x75, 0x00, 0x00, 0xB8, 0x3C, 0x00, 0x00, 0x00, 0x0F, 0x05};
+                std::vector<uint8_t> exit_postamble = {0x48, 0x81, 0xC4, 0x30, 0x75, 0x00, 0x00, 0x5D, 0xB8, 0x3C, 0x00, 0x00, 0x00, 0x0F, 0x05};
 
                 bin.insert(bin.begin(), preamble.begin(), preamble.end());
 
-                bin.insert(bin.end(), ret_postamble.begin(), ret_postamble.end());
+                bin.insert(bin.end(), exit_postamble.begin(), exit_postamble.end());
+
+                // bin = { 0x55, 0x48, 0x89, 0xEC, 0x5D, 0xC3 };
 
                 std::cout << std::hex;
                 for (uint8_t i : bin) {
@@ -121,20 +123,22 @@ public:
     }
 
     void inc() {
-        std::vector<uint8_t> inst = {
-            0x8A, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF, // mov al, byte [rbp + rbx - 30000]
-            0x04, 0x01,                               // add al, 1
-            0x88, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF  // mov byte [rbp + rbx - 30000], al
-        };
+        // std::vector<uint8_t> inst = {
+        //     0x8A, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF, // mov al, byte [rbp + rbx - 30000]
+        //     0x04, 0x01,                               // add al, 1
+        //     0x88, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF  // mov byte [rbp + rbx - 30000], al
+        // };
+        std::vector<uint8_t> inst = { 0x80, 0x03, 0x01 };
         bin.insert(bin.end(), inst.begin(), inst.end());
     }
 
     void dec() {
-        std::vector<uint8_t> inst = {
-            0x8A, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF, // mov al, byte [rbp + rbx - 30000]
-            0x2c, 0x01,                               // sub al, 1
-            0x88, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF  // mov byte [rbp + rbx - 30000], al
-        };
+        // std::vector<uint8_t> inst = {
+        //     0x8A, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF, // mov al, byte [rbp + rbx - 30000]
+        //     0x2c, 0x01,                               // sub al, 1
+        //     0x88, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF  // mov byte [rbp + rbx - 30000], al
+        // };
+        std::vector<uint8_t> inst = { 0x80, 0x2b, 0x01 };
         bin.insert(bin.end(), inst.begin(), inst.end());
     }
 
@@ -152,7 +156,7 @@ public:
         */
         std::vector<uint8_t> inst = {
             0xBA, 0x01, 0x00, 0x00, 0x00, // mov  edx, 1
-            0x48, 0x89, 0xE6,             // mov  rsi, rsp
+            0x48, 0x89, 0xDE,             // mov  rsi, rbx
             0xBF, 0x01, 0x00, 0x00, 0x00, // mov  edi, 1
             0xB8, 0x01, 0x00, 0x00, 0x00, // mov  eax, 1
             0x0F, 0x05                    // syscall
@@ -174,7 +178,7 @@ public:
         */
         std::vector<uint8_t> inst = {
             0xBA, 0x01, 0x00, 0x00, 0x00,   // mov edx, 1
-            0x48, 0x89, 0xE6,               // mov rsi, rsp
+            0x48, 0x89, 0xDE,               // mov rsi, rbx
             0xBF, 0x00, 0x00, 0x00, 0x00,   // mov edi, 0
             0xB8, 0x00, 0x00, 0x00, 0x00,   // mov eax, 0
             0x0F, 0x05                      // syscall
@@ -186,15 +190,15 @@ public:
         // jmp 0
         // this is just a placeholder to signify the start
         // of a loop
-        std::vector<uint8_t> inst = {0x8A, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF, 0x84, 0xC0, 0x74, 0xfe, 0x0F, 0x1F, 0x00, 0x90, 0x90};
+        std::vector<uint8_t> inst = {0x80, 0x3B, 0x00, 0x74, 0xfe, 0x00, 0x00, 0x00, 0x00};
         bin.insert(bin.end(), inst.cbegin(), inst.cend());
     }
 
     void end_loop() {
-        // jmp 0xffffffff
+        // jmp 
         // this is just a placeholder to signify the end
         // of a loop
-        std::vector<uint8_t> inst = {0xeb, 0xfe, 0x0F, 0x1F, 0x00, 0x90, 0x90};
+        std::vector<uint8_t> inst = {0xeb, 0xfe, 0x00, 0x00, 0x00, 0x00};
         bin.insert(bin.end(), inst.cbegin(), inst.cend());
     }
 
@@ -220,16 +224,11 @@ public:
 
     void emit_JMP(int64_t distance, size_t pos) {
 
-        if (distance + SIZEOF_TEST + SIZEOF_JUMP >= 127) {
-            distance -= 127;
+        // if (distance + SIZEOF_TEST + SIZEOF_JUMP >= 127) {
+        //     distance -= 127;
 
-            int32_t address = 0xffffff79 - distance;
+            int32_t address = -distance - 5 - 4;
 
-            // I hate this
-            // JE and JMP have different "limits" for their small jump
-            // JE can jump 130 forwards but JMP can only jump 127 backwards
-
-            address -= SIZEOF_JUMP;
 
             std::vector<uint8_t> last_three_bytes = {
                 static_cast<uint8_t>((address >> 8) & 0xff),
@@ -237,29 +236,29 @@ public:
                 static_cast<uint8_t>((address >> 24) & 0xff),
             };
 
-            bin[pos] = 0xe9;
-            bin[pos + 1] = address & 0xff;
-            bin[pos + 2] = static_cast<uint8_t>((address >> 8) & 0xff);
-            bin[pos + 3] = static_cast<uint8_t>((address >> 16) & 0xff);
-            bin[pos + 4] = static_cast<uint8_t>((address >> 24) & 0xff);
+            bin[pos] = 0x0f;
+            bin[pos + 1] = 0x85;
+            bin[pos + 2] = address & 0xff;
+            bin[pos + 3] = static_cast<uint8_t>((address >> 8) & 0xff);
+            bin[pos + 4] = static_cast<uint8_t>((address >> 16) & 0xff);
+            bin[pos + 5] = static_cast<uint8_t>((address >> 24) & 0xff);
             // bin.insert(bin.begin() + pos + 2, last_three_bytes.cbegin(), last_three_bytes.cend());
 
-        }
-        else {
-            uint8_t address = 0xfe - distance - SIZEOF_TEST - SIZEOF_MOV_AL_DP;
-            bin[pos] = 0xeb;
-            bin[pos + 1] = address;
-        }
+        // }
+        // else {
+        //     uint8_t address = 0xfe - distance - SIZEOF_TEST - SIZEOF_MOV_AL_DP;
+        //     bin[pos] = 0xeb;
+        //     bin[pos + 1] = address;
+        // }
     }
 
     void emit_JE(int64_t distance, size_t pos) {
 
-        if ((distance + SIZEOF_JUMP >= 130) ||
-                (distance >= 127 && distance + SIZEOF_JUMP >= 130)) {
+        // if ((distance + SIZEOF_JUMP >= 130) ||
+        //         (distance >= 127 && distance + SIZEOF_JUMP >= 130)) {
 
-            distance -= 130;
 
-            uint32_t address = 0x7c + distance + SIZEOF_JUMP;
+            uint32_t address = distance;
             std::vector<uint8_t> last_four_bytes = {
                 static_cast<uint8_t>(address & 0xff),
                 static_cast<uint8_t>((address >> 8) & 0xff),
@@ -273,12 +272,12 @@ public:
             bin[pos + 3] = static_cast<uint8_t>((address >> 8) & 0xff);
             bin[pos + 4] = static_cast<uint8_t>((address >> 16) & 0xff);
             bin[pos + 5] = static_cast<uint8_t>((address >> 24) & 0xff);
-        }
-        else {
-            uint8_t address = 0xfe + distance + SIZEOF_JUMP;
-            bin[pos] = 0x74;
-            bin[pos + 1] = address;
-        }
+        // }
+        // else {
+        //     uint8_t address = 0xfe + distance + SIZEOF_JUMP;
+        //     bin[pos] = 0x74;
+        //     bin[pos + 1] = address;
+        // }
     }
 
     void *allocMemory(size_t size) {
@@ -300,7 +299,7 @@ public:
         mprotect(buf, sizeof(*(char *)buf), PROT_READ | PROT_EXEC); // linux
 
         // DWORD old;
-        // VirtualProtect(buf, sizeof(*(char*)buf), PAGE_EXECUTE_READ, &old);       // windows
+        // VirtualProtect(buf, sizeof(*(char*)buf), PAGE_EXECUTE_READ, &old);  // windows
 
         return buf;
     }
@@ -308,5 +307,4 @@ public:
 // ++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.
 // [>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>]
 // ++>+++++[<+>-]++++++++[<++++++>-]<.
-
-
+// ,[->+>+<<]>.>.
