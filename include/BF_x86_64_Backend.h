@@ -9,17 +9,15 @@
 
 #include "Backend.h"
 
-#define SIZEOF_JUMP         6
-#define SIZEOF_TEST         2
-#define SIZEOF_MOV_AL_DP    7
-
 class BF_x86_64_Backend : public Backend {
 private:
+    Mode mode;
     std::string code;
     std::stack<size_t> loop_stack;
 
 public:
-    BF_x86_64_Backend() : code()
+    BF_x86_64_Backend(Mode _mode) :
+        mode(_mode), code()
     {
     }
 
@@ -56,51 +54,32 @@ public:
         }
 
         switch (mode) {
-            case Mode::jit: {
-                // copy the vector.data() into a executable buffer and run
-                // bin = { 0x55, 0x48, 0x89, 0xE5, 0x48, 0x81, 0xEC, 0x30, 0x75, 0x00, 0x00, 0x48, 0x31, 0xDB, 0x48, 0xC7, 0x04, 0x1C, 0x41, 0x00, 0x00, 0x00, 0x48, 0xFF, 0xC3, 0x48, 0xC7, 0x04, 0x1C, 0x42, 0x00, 0x00, 0x00, 0x48, 0xFF, 0xC3, 0x48, 0xC7, 0x04, 0x1C, 0x43, 0x00, 0x00, 0x00, 0x48, 0xFF, 0xC3, 0x48, 0xC7, 0x04, 0x1C, 0x44, 0x00, 0x00, 0x00, 0x48, 0xFF, 0xC3, 0xBA, 0x05, 0x00, 0x00, 0x00, 0x48, 0x89, 0xE6, 0xBF, 0x01, 0x00, 0x00, 0x00, 0xB8, 0x01, 0x00, 0x00, 0x00, 0x0F, 0x05, 0x8A, 0x44, 0x1C, 0xFF, 0xFE, 0xC0, 0x88, 0x44, 0x1C, 0xFF, 0xBA, 0x05, 0x00, 0x00, 0x00, 0x48, 0x89, 0xE6, 0xBF, 0x01, 0x00, 0x00, 0x00, 0xB8, 0x01, 0x00, 0x00, 0x00, 0x0F, 0x05, 0x5D, 0x48, 0x81, 0xc4, 0x30, 0x75, 0x00, 0x00, 0xc3};
-                // void *block = allocMemory(bin.size());
-                // emit(block, bin.data(), bin.size());
-
-                // typedef void (*exe)( void );
-
-                // exe func = (exe)makeExecutable(block);
-
-                // func();
-
+            case Mode::interpret: // interpret shouldn't be possible but fallthrough to jit just in case
+            case Mode::jit: 
+            {
                 internal_link();
 
                 std::vector<uint8_t> preamble = {0x55, 0x48, 0x89, 0xE5, 0x48, 0x81, 0xEC, 0x30, 0x75, 0x00, 0x00, 0x48, 0x89, 0xe3};
-
                 std::vector<uint8_t> ret_postamble = {0x48, 0x81, 0xC4, 0x30, 0x75, 0x00, 0x00, 0x5D, 0x31, 0xc0, 0xC3};
-
                 std::vector<uint8_t> exit_postamble = {0x48, 0x81, 0xC4, 0x30, 0x75, 0x00, 0x00, 0x5D, 0xB8, 0x3C, 0x00, 0x00, 0x00, 0x0F, 0x05};
 
                 bin.insert(bin.begin(), preamble.begin(), preamble.end());
+                bin.insert(bin.end(), ret_postamble.begin(), ret_postamble.end());
 
-                bin.insert(bin.end(), exit_postamble.begin(), exit_postamble.end());
-
-                // bin = { 0x55, 0x48, 0x89, 0xEC, 0x5D, 0xC3 };
-
+                #ifdef DEBUG_BUILD
                 std::cout << std::hex;
                 for (uint8_t i : bin) {
                     std::cout << std::setw(2) << std::setfill('0') << (int)i << " ";
                 }
                 std::cout << std::endl;
+                #endif
 
                 void *block = allocMemory(bin.size());
                 emit(block, bin.data(), bin.size());
-
                 typedef void (*exe)(void);
-
                 exe func = (exe)makeExecutable(block);
-
-                std::cout << std::endl;
-
                 func();
-
-                std::cout << "\n";
-
+                dealloc(block, bin.size());
                 break;
             }
             case Mode::elf:
@@ -123,37 +102,16 @@ public:
     }
 
     void inc() {
-        // std::vector<uint8_t> inst = {
-        //     0x8A, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF, // mov al, byte [rbp + rbx - 30000]
-        //     0x04, 0x01,                               // add al, 1
-        //     0x88, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF  // mov byte [rbp + rbx - 30000], al
-        // };
         std::vector<uint8_t> inst = { 0x80, 0x03, 0x01 };
         bin.insert(bin.end(), inst.begin(), inst.end());
     }
 
     void dec() {
-        // std::vector<uint8_t> inst = {
-        //     0x8A, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF, // mov al, byte [rbp + rbx - 30000]
-        //     0x2c, 0x01,                               // sub al, 1
-        //     0x88, 0x84, 0x1D, 0xD0, 0x8A, 0xFF, 0xFF  // mov byte [rbp + rbx - 30000], al
-        // };
         std::vector<uint8_t> inst = { 0x80, 0x2b, 0x01 };
         bin.insert(bin.end(), inst.begin(), inst.end());
     }
 
     void out() {
-        /*
-            ; edx = length of buffer
-            ; rsi = pointer to buffer
-            ; edi = 1 for stdout
-            ; eax = 1 for write()
-            mov  edx, 1
-            mov  rsi, rsp
-            mov  edi, 1
-            mov  eax, 1           ; write
-            syscall
-        */
         std::vector<uint8_t> inst = {
             0xBA, 0x01, 0x00, 0x00, 0x00, // mov  edx, 1
             0x48, 0x89, 0xDE,             // mov  rsi, rbx
@@ -165,17 +123,6 @@ public:
     }
 
     void in() {
-        /*
-            ; edx = length of buffer
-            ; rsi = pointer to buffer
-            ; edi = 0 for stdin
-            ; eax = 1 for read()
-            mov  edx, 1
-            mov  rsi, rsp
-            mov  edi, 0
-            mov  eax, 0           ; read
-            syscall
-        */
         std::vector<uint8_t> inst = {
             0xBA, 0x01, 0x00, 0x00, 0x00,   // mov edx, 1
             0x48, 0x89, 0xDE,               // mov rsi, rbx
@@ -187,25 +134,23 @@ public:
     }
 
     void start_loop() {
-        // jmp 0
+        // je 0x0
         // this is just a placeholder to signify the start
-        // of a loop
         std::vector<uint8_t> inst = {0x80, 0x3B, 0x00, 0x74, 0xfe, 0x00, 0x00, 0x00, 0x00};
         bin.insert(bin.end(), inst.cbegin(), inst.cend());
     }
 
     void end_loop() {
-        // jmp 
+        // jmp 0x0
         // this is just a placeholder to signify the end
-        // of a loop
-        std::vector<uint8_t> inst = {0xeb, 0xfe, 0x00, 0x00, 0x00, 0x00};
+        std::vector<uint8_t> inst = {0xe9, 0x00, 0x00, 0x00, 0x00};
         bin.insert(bin.end(), inst.cbegin(), inst.cend());
     }
 
     void internal_link() {
         std::stack<size_t> loop_stack;
-        uint8_t start[] = {0x74, 0xfe};
-        uint8_t end[] = {0xeb, 0xfe};
+        uint8_t start[] = {0x74, 0xfe, 0x00, 0x00, 0x00, 0x00};
+        uint8_t end[] = {0xe9, 0x00, 0x00, 0x00, 0x00};
         for (size_t i = 0; i + 1 < bin.size(); i++) {
             if (memcmp(bin.data() + i, start, 2) == 0) {
                 loop_stack.push(i);
@@ -224,60 +169,24 @@ public:
 
     void emit_JMP(int64_t distance, size_t pos) {
 
-        // if (distance + SIZEOF_TEST + SIZEOF_JUMP >= 127) {
-        //     distance -= 127;
+            // 8 is the size of all instructions to skip over
+            distance = -distance - 8;
 
-            int32_t address = -distance - 5 - 4;
-
-
-            std::vector<uint8_t> last_three_bytes = {
-                static_cast<uint8_t>((address >> 8) & 0xff),
-                static_cast<uint8_t>((address >> 16) & 0xff),
-                static_cast<uint8_t>((address >> 24) & 0xff),
-            };
-
-            bin[pos] = 0x0f;
-            bin[pos + 1] = 0x85;
-            bin[pos + 2] = address & 0xff;
-            bin[pos + 3] = static_cast<uint8_t>((address >> 8) & 0xff);
-            bin[pos + 4] = static_cast<uint8_t>((address >> 16) & 0xff);
-            bin[pos + 5] = static_cast<uint8_t>((address >> 24) & 0xff);
-            // bin.insert(bin.begin() + pos + 2, last_three_bytes.cbegin(), last_three_bytes.cend());
-
-        // }
-        // else {
-        //     uint8_t address = 0xfe - distance - SIZEOF_TEST - SIZEOF_MOV_AL_DP;
-        //     bin[pos] = 0xeb;
-        //     bin[pos + 1] = address;
-        // }
+            bin[pos] = 0xe9;
+            bin[pos + 1] = distance & 0xff;
+            bin[pos + 2] = static_cast<uint8_t>((distance >> 8) & 0xff);
+            bin[pos + 3] = static_cast<uint8_t>((distance >> 16) & 0xff);
+            bin[pos + 4] = static_cast<uint8_t>((distance >> 24) & 0xff);
     }
 
     void emit_JE(int64_t distance, size_t pos) {
-
-        // if ((distance + SIZEOF_JUMP >= 130) ||
-        //         (distance >= 127 && distance + SIZEOF_JUMP >= 130)) {
-
-
-            uint32_t address = distance;
-            std::vector<uint8_t> last_four_bytes = {
-                static_cast<uint8_t>(address & 0xff),
-                static_cast<uint8_t>((address >> 8) & 0xff),
-                static_cast<uint8_t>((address >> 16) & 0xff),
-                static_cast<uint8_t>((address >> 24) & 0xff),
-            };
-
+            --distance;
             bin[pos] = 0x0f;
             bin[pos + 1] = 0x84;
-            bin[pos + 2] = static_cast<uint8_t>(address & 0xff);
-            bin[pos + 3] = static_cast<uint8_t>((address >> 8) & 0xff);
-            bin[pos + 4] = static_cast<uint8_t>((address >> 16) & 0xff);
-            bin[pos + 5] = static_cast<uint8_t>((address >> 24) & 0xff);
-        // }
-        // else {
-        //     uint8_t address = 0xfe + distance + SIZEOF_JUMP;
-        //     bin[pos] = 0x74;
-        //     bin[pos + 1] = address;
-        // }
+            bin[pos + 2] = static_cast<uint8_t>(distance & 0xff);
+            bin[pos + 3] = static_cast<uint8_t>((distance >> 8) & 0xff);
+            bin[pos + 4] = static_cast<uint8_t>((distance >> 16) & 0xff);
+            bin[pos + 5] = static_cast<uint8_t>((distance >> 24) & 0xff);
     }
 
     void *allocMemory(size_t size) {
@@ -288,6 +197,11 @@ public:
             return nullptr;
         }
         return ptr;
+    }
+
+    void dealloc(void *block, size_t size) {
+        munmap(block, size);
+        // VirtualFree(block, size, MEM_RELEASE);
     }
 
     void emit(void *m, unsigned char *code, size_t size) {

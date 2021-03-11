@@ -7,7 +7,7 @@
 
 enum Platform {
     x86_64,
-    arm
+    arm64
 };
 
 enum Mode {

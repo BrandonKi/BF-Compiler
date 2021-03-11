@@ -7,19 +7,15 @@ BFCompiler::BFCompiler(std::string& data, Platform platform, Mode mode):
 }
 
 i32 BFCompiler::compile() {
-    if(mode == Mode::interpret) {
+    if(mode == interpret)
         backend = new BF_Interpreter_Backend{};
-    } else {
-        switch(mode) {
-            case jit:
-            case pe:
-            case elf:
-                backend = new BF_x86_64_Backend{};
-                break;
-        }
+    else {
         switch(platform) {
             case x86_64:
-            case arm:
+                backend = new BF_x86_64_Backend(mode);
+                break;
+            case arm64:
+                // backend = new BF_ARM64_Backend(mode);
                 break;
         }
     }
