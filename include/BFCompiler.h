@@ -23,7 +23,7 @@ using f64 = double;
 class BFCompiler {
     public:
 
-        BFCompiler(std::string&, Platform, Mode);
+        BFCompiler(std::string&, Platform, Mode, std::string&);
 
         /**
          * compile the file and return the error code
@@ -32,9 +32,10 @@ class BFCompiler {
         std::string get_error_message();
 
     private:
-        std::string data;
+        std::string input_file;
         Platform platform;
         Mode mode;
+        std::string output_file;
 
         Backend *backend;
 

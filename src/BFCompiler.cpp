@@ -1,7 +1,7 @@
 #include "BFCompiler.h"
 
-BFCompiler::BFCompiler(std::string& data, Platform platform, Mode mode):
-    data(data), platform(platform), mode(mode)
+BFCompiler::BFCompiler(std::string& input_file, Platform platform, Mode mode, std::string& output_file):
+    input_file(input_file), platform(platform), mode(mode), output_file(output_file)
 {
     
 }
@@ -12,7 +12,7 @@ i32 BFCompiler::compile() {
     else {
         switch(platform) {
             case x86_64:
-                backend = new BF_x86_64_Backend(mode);
+                backend = new BF_x86_64_Backend();
                 break;
             case arm64:
                 // backend = new BF_ARM64_Backend(mode);
@@ -28,6 +28,6 @@ std::string BFCompiler::get_error_message() {
 }
 
 std::vector<u8> BFCompiler::generate_raw() {
-    backend->compile(data, platform, mode);
+    backend->compile(input_file, platform, mode, output_file);
     return backend->get_bin();
 }

@@ -8,12 +8,11 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #endif
-
+#define DEBUG_BUILD
 #include "Backend.h"
 
 class BF_x86_64_Backend : public Backend {
 private:
-    Mode mode;
     std::string code;
     std::stack<size_t> loop_stack;
 
@@ -22,14 +21,14 @@ private:
     const std::vector<uint8_t> exit_postamble = {0x48, 0x81, 0xC4, 0x30, 0x75, 0x00, 0x00, 0x5D, 0xB8, 0x3C, 0x00, 0x00, 0x00, 0x0F, 0x05};
 
 public:
-    BF_x86_64_Backend(Mode _mode) :
-        mode(_mode), code()
+    BF_x86_64_Backend():
+        code()
     {
     
     }
 
-    virtual void compile(std::string &code_p, Platform platform, Mode mode) {
-        code = code_p;
+    virtual void compile(std::string& input_file, Platform platform, Mode mode, std::string& output_file) {
+        code = read_file(input_file);
 
         for (int i = 0; i < code.size(); i++) {
             switch (code[i]) {
@@ -93,9 +92,8 @@ public:
                 bin.insert(bin.end(), exit_postamble.begin(), exit_postamble.end());
 
                 // be able to change filename in the future
-                std::string filename = "out";
-                write_elf(filename, bin);
-                set_permissions(filename);
+                write_elf(output_file, bin);
+                set_permissions(output_file);
                 break;
             }
             case Mode::pe:

@@ -21,8 +21,10 @@ class BF_Interpreter_Backend : public Backend {
 
         }
 
-        virtual void compile(std::string& code_p, Platform platform, Mode mode) {
-            code = code_p;
+        virtual void compile(std::string& input_file, Platform platform, Mode mode, std::string& output_file) {
+
+            code = read_file(input_file);
+
             for(instruction_pointer = 0; instruction_pointer < code.size(); instruction_pointer++) {
                 switch(code[instruction_pointer]) {
                     case '>':

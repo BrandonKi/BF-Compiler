@@ -2,6 +2,8 @@
 #define BACKEND_H_GUARD
 
 #include <vector>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <cstdint>
 
@@ -21,10 +23,19 @@ class Backend {
     protected:
         std::vector<uint8_t> bin;
 
+        std::string read_file(const std::string& filepath) {
+            std::ifstream file;
+            file.open(filepath);
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            file.close();
+            return buffer.str();
+        }
+
     public:
         Backend() {}
 
-        virtual void compile(std::string&, Platform, Mode) = 0;
+        virtual void compile(std::string&, Platform, Mode, std::string&) = 0;
 
          void dp_inc();
          void dp_dec();
@@ -36,6 +47,7 @@ class Backend {
          void end_loop();
 
         std::vector<uint8_t> get_bin() { return bin; }
+
 };
 
 #endif
