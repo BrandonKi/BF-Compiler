@@ -23,13 +23,23 @@ using f64 = double;
 class BFCompiler {
     public:
 
-        BFCompiler(std::string&, Platform, Mode, std::string&);
+        /**
+         * @brief Construct a new BFCompiler object
+         * 
+         * @param input_file path to bf source file
+         * @param platform Platform struct
+         * @param mode Mode struct
+         * @param output_file path to output file
+         * 
+         */
+        BFCompiler(std::string& input_file, Platform platform, Mode mode, std::string& output_file);
 
         /**
          * compile the file and return the error code
+         * 
+         * @return exit code
          */
         i32 compile();
-        std::string get_error_message();
 
     private:
         std::string input_file;
@@ -38,7 +48,6 @@ class BFCompiler {
         std::string output_file;
 
         Backend *backend;
-
         
         std::vector<u8> generate_raw();
 

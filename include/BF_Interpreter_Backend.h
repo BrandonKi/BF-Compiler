@@ -55,10 +55,6 @@ class BF_Interpreter_Backend : public Backend {
             }
         }
 
-        virtual void jit_compile(std::string* code_p) {
-            
-        }
-
         void dp_inc() {
             data_pointer += 1;
         }

@@ -23,10 +23,6 @@ i32 BFCompiler::compile() {
     return 0;
 }
 
-std::string BFCompiler::get_error_message() {
-    return std::string{};
-}
-
 std::vector<u8> BFCompiler::generate_raw() {
     backend->compile(input_file, platform, mode, output_file);
     return backend->get_bin();
