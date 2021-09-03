@@ -1,7 +1,7 @@
 #include "BFCompiler.h"
 
-BFCompiler::BFCompiler(std::string& input_file, Platform platform, Mode mode, std::string& output_file):
-    input_file(input_file), platform(platform), mode(mode), output_file(output_file)
+BFCompiler::BFCompiler(std::string& input_file, Platform platform, Mode mode, std::string& output_file, uint8_t opt_level):
+    input_file(input_file), platform(platform), mode(mode), output_file(output_file), opt_level(opt_level)
 {
     
 }
@@ -24,6 +24,6 @@ i32 BFCompiler::compile() {
 }
 
 std::vector<u8> BFCompiler::generate_raw() {
-    backend->compile(input_file, platform, mode, output_file);
+    backend->compile(input_file, platform, mode, output_file, opt_level);
     return backend->get_bin();
 }

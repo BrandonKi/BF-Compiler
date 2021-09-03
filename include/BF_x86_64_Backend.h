@@ -14,7 +14,7 @@
 
 #include "Backend.h"
 
-// #define DEBUG_BUILD
+#define DEBUG_BUILD
 
 class BF_x86_64_Backend : public Backend {
     private:
@@ -32,7 +32,7 @@ class BF_x86_64_Backend : public Backend {
         
         }
 
-        virtual void compile(std::string& input_file, Platform platform, Mode mode, std::string& output_file) {
+        virtual void compile(std::string& input_file, Platform platform, Mode mode, std::string& output_file, uint8_t opt_level) {
             code = read_file(input_file);
 
             for (int i = 0; i < code.size(); i++) {
@@ -68,10 +68,14 @@ class BF_x86_64_Backend : public Backend {
                 case Mode::interpret: // interpret shouldn't be possible but fallthrough to jit just in case
                 case Mode::jit: 
                 {
+                    if(opt_level > 0)
+                        peepholeOptimization(bin);
+
                     internal_link();
 
                     bin.insert(bin.begin(), preamble.begin(), preamble.end());
                     bin.insert(bin.end(), ret_postamble.begin(), ret_postamble.end());
+
 
                     #ifdef DEBUG_BUILD
                     std::cout << std::hex;
@@ -91,6 +95,9 @@ class BF_x86_64_Backend : public Backend {
                 }
                 case Mode::elf:
                 {
+                    if(opt_level > 0)
+                        peepholeOptimization(bin);
+
                     internal_link();
 
                     bin.insert(bin.begin(), preamble.begin(), preamble.end());
@@ -246,7 +253,7 @@ class BF_x86_64_Backend : public Backend {
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x04, 0x08,
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00,
                 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x000
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
             };
             bin.insert(bin.begin(), header.begin(), header.end());
             std::ofstream file(filename, std::ios::out|std::ios::binary|std::ios::trunc);
@@ -258,9 +265,99 @@ class BF_x86_64_Backend : public Backend {
         void set_permissions(std::string filename) {
             chmod(filename.c_str(), S_IRWXU);
         }
+
+        void peepholeOptimization(std::vector<uint8_t>& block) {
+            uint8_t dp_inc[] = {0x48, 0x8D, 0x5B, 0x01};
+            uint8_t dp_dec[] = {0x48, 0x8D, 0x5B, 0xFF};
+            uint8_t inc[] = {0x80, 0x03, 0x01};
+            uint8_t dec[] = {0x80, 0x2b, 0x01};
+
+            auto fold_dp_expr = [&](size_t& i) {
+                size_t start_i = i;
+                uint8_t sum = 0;
+                while (true) {
+                    // overflow
+                    if(sum + 1 < sum)
+                        break;
+                    if(i >= block.size())
+                        break;
+                    if(memcmp(block.data() + i, dp_inc, 4) == 0)
+                        sum += 1;
+                    else if(memcmp(block.data() + i, dp_dec, 4) == 0)
+                        sum -= 1;
+                    else
+                        break;
+                    i += 4;
+                }
+                if(sum == 0) {
+                    block.erase(block.begin() + start_i, block.begin() + i);
+                    i = start_i - 4;
+                }
+                else {
+                    // add 4 to keep the first dp instruction
+                    block.erase(block.begin() + start_i + 4, block.begin() + i);
+                    block[start_i + 3] = sum;
+                    i = start_i + 3;
+                }
+            };
+
+            auto fold_expr = [&](size_t& i){
+                size_t start_i = i;
+                int16_t sum = 0;
+                
+                while (true) {
+                    if(i >= block.size())
+                        break;
+                    else if(memcmp(block.data() + i, inc, 3) == 0) {
+                        if(sum + 1 > static_cast<int16_t>(std::numeric_limits<uint8_t>::max()))
+                            break;
+                        sum += 1;
+                    }
+                    else if(memcmp(block.data() + i, dec, 3) == 0) {
+                        if(sum - 1 < -1 * static_cast<int16_t>(std::numeric_limits<uint8_t>::max()))
+                            break;
+                        sum -= 1;
+                    }
+                    else
+                        break;
+                    i += 3;
+                }
+                if(sum == 0) {
+                    block.erase(block.begin() + start_i, block.begin() + i);
+                    i = start_i;
+                }
+                else if (sum < 0) {
+                    // add 3 to keep the first instruction
+                    block.erase(block.begin() + start_i + 3, block.begin() + i);
+                    // change to sub instruction
+                    block[start_i + 1] = 0x2b;
+                    block[start_i + 2] = -1 * sum;
+                    i = start_i + 2;
+                }
+                else {
+                    // add 3 to keep the first instruction
+                    block.erase(block.begin() + start_i + 3, block.begin() + i);
+                    block[start_i + 2] = sum;
+                    i = start_i + 2;
+                }
+            };
+
+
+            for(size_t i = 0; i < block.size(); ++i) { 
+                switch(block[i]) {
+                    case 0x48:
+                        if(memcmp(block.data() + i, dp_inc, 4) == 0 || memcmp(block.data() + i, dp_dec, 4) == 0)
+                            fold_dp_expr(i);
+                        break;
+                    case 0x80:
+                        if(memcmp(block.data() + i, inc, 3) == 0 || memcmp(block.data() + i, dec, 3) == 0)
+                            fold_expr(i);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
 };
-// ++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++.
-// [>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>]
-// ++>+++++[<+>-]++++++++[<++++++>-]<.
-// ,[->+>+<<]>.>.
+
 #endif

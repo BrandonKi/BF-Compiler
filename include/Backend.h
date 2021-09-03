@@ -35,7 +35,7 @@ class Backend {
     public:
         Backend() {}
 
-        virtual void compile(std::string&, Platform, Mode, std::string&) = 0;
+        virtual void compile(std::string&, Platform, Mode, std::string&, uint8_t) = 0;
 
          void dp_inc();
          void dp_dec();

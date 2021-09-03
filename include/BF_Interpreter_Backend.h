@@ -21,7 +21,7 @@ class BF_Interpreter_Backend : public Backend {
 
         }
 
-        virtual void compile(std::string& input_file, Platform platform, Mode mode, std::string& output_file) {
+        virtual void compile(std::string& input_file, Platform platform, Mode mode, std::string& output_file, uint8_t opt_level) {
 
             code = read_file(input_file);
 

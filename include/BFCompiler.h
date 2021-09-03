@@ -32,7 +32,7 @@ class BFCompiler {
          * @param output_file path to output file
          * 
          */
-        BFCompiler(std::string& input_file, Platform platform, Mode mode, std::string& output_file);
+        BFCompiler(std::string& input_file, Platform platform, Mode mode, std::string& output_file, uint8_t);
 
         /**
          * compile the file and return the error code
@@ -46,6 +46,7 @@ class BFCompiler {
         Platform platform;
         Mode mode;
         std::string output_file;
+        uint8_t opt_level;
 
         Backend *backend;
         

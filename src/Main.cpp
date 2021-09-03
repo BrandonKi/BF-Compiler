@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <charconv>
 
 #include "BFCompiler.h"
 
@@ -10,6 +11,7 @@ struct args_t {
     Platform platform = Platform::x86_64;
     Mode mode = Mode::interpret;
     std::string output_filepath = "a.out";
+    uint8_t opt_level = 0;
 };
 
 args_t parse_args(int argc, char *argv[]) {
@@ -38,6 +40,7 @@ args_t parse_args(int argc, char *argv[]) {
         }
         else if(str.substr(0, 2) == "-O") {
             // optimization levels???
+            std::from_chars(str.data() + 2, str.data() + str.size(), result.opt_level);
         }
         else {
             if(str == arg_vector.back())
@@ -54,6 +57,6 @@ args_t parse_args(int argc, char *argv[]) {
 
 int main(int argc, char* argv[]) {
     args_t args = parse_args(argc, argv);
-    BFCompiler compiler(args.filepath, args.platform, args.mode, args.output_filepath);
+    BFCompiler compiler(args.filepath, args.platform, args.mode, args.output_filepath, args.opt_level);
     compiler.compile();
 }
