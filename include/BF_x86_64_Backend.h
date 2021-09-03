@@ -14,7 +14,7 @@
 
 #include "Backend.h"
 
-#define DEBUG_BUILD
+// #define DEBUG_BUILD
 
 class BF_x86_64_Backend : public Backend {
     private:
