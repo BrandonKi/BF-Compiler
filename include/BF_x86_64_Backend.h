@@ -65,7 +65,7 @@ class BF_x86_64_Backend : public Backend {
             }
 
             switch (mode) {
-                case Mode::interpret: // interpret shouldn't be possible but fallthrough to jit just in case
+                case Mode::interpret: // interpret shouldn't be possible at this point but fallthrough to jit just in case
                 case Mode::jit: 
                 {
                     if(opt_level > 0)
@@ -269,10 +269,10 @@ class BF_x86_64_Backend : public Backend {
         // these transformations would have been trivial if I used an IR
         // but alas I did not, so instead I'm directly optimizing the machine code
         void peepholeOptimization(std::vector<uint8_t>& block) {
-            uint8_t dp_inc[] = {0x48, 0x8D, 0x5B, 0x01};
-            uint8_t dp_dec[] = {0x48, 0x8D, 0x5B, 0xFF};
-            uint8_t inc[] = {0x80, 0x03, 0x01};
-            uint8_t dec[] = {0x80, 0x2b, 0x01};
+            constexpr uint8_t dp_inc[] = {0x48, 0x8D, 0x5B, 0x01};
+            constexpr uint8_t dp_dec[] = {0x48, 0x8D, 0x5B, 0xFF};
+            constexpr uint8_t inc[] = {0x80, 0x03, 0x01};
+            constexpr uint8_t dec[] = {0x80, 0x2b, 0x01};
 
             auto fold_dp_expr = [&](size_t& i) {
                 size_t start_i = i;
