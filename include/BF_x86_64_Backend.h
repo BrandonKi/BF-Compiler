@@ -150,8 +150,8 @@ class BF_x86_64_Backend : public Backend {
             std::vector<uint8_t> inst = {
                 0xBA, 0x01, 0x00, 0x00, 0x00,   // mov edx, 1
                 0x48, 0x89, 0xDE,               // mov rsi, rbx
-                0xBF, 0x00, 0x00, 0x00, 0x00,   // mov edi, 0
-                0xB8, 0x00, 0x00, 0x00, 0x00,   // mov eax, 0
+                0x31, 0xff,                     // xor edi, edi
+                0x31, 0xc0,                     // xor eax, eax
                 0x0F, 0x05                      // syscall
             };
             bin.insert(bin.end(), inst.cbegin(), inst.cend());
