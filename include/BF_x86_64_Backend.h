@@ -266,6 +266,8 @@ class BF_x86_64_Backend : public Backend {
             chmod(filename.c_str(), S_IRWXU);
         }
 
+        // these transformations would have been trivial if I used an IR
+        // but alas I did not, so instead I'm directly optimizing the machine code
         void peepholeOptimization(std::vector<uint8_t>& block) {
             uint8_t dp_inc[] = {0x48, 0x8D, 0x5B, 0x01};
             uint8_t dp_dec[] = {0x48, 0x8D, 0x5B, 0xFF};
@@ -274,17 +276,23 @@ class BF_x86_64_Backend : public Backend {
 
             auto fold_dp_expr = [&](size_t& i) {
                 size_t start_i = i;
-                uint8_t sum = 0;
+                int16_t sum = 0;
+
                 while (true) {
-                    // overflow
-                    if(sum + 1 < sum)
-                        break;
                     if(i >= block.size())
                         break;
-                    if(memcmp(block.data() + i, dp_inc, 4) == 0)
+                    if(memcmp(block.data() + i, dp_inc, 4) == 0) {
+                        // uses int8_t instead of uint8_t because of lea
+                        if(sum + 1 > static_cast<int16_t>(std::numeric_limits<int8_t>::max()))
+                            break;
                         sum += 1;
-                    else if(memcmp(block.data() + i, dp_dec, 4) == 0)
+                    }
+                    else if(memcmp(block.data() + i, dp_dec, 4) == 0) {
+                        // uses int8_t instead of uint8_t because of lea
+                        if(sum - 1 < static_cast<int16_t>(std::numeric_limits<int8_t>::min()))
+                            break;
                         sum -= 1;
+                    }
                     else
                         break;
                     i += 4;
@@ -296,6 +304,7 @@ class BF_x86_64_Backend : public Backend {
                 else {
                     // add 4 to keep the first dp instruction
                     block.erase(block.begin() + start_i + 4, block.begin() + i);
+                    // std::cout << sum << '\n';
                     block[start_i + 3] = sum;
                     i = start_i + 3;
                 }
@@ -342,7 +351,7 @@ class BF_x86_64_Backend : public Backend {
                 }
             };
 
-
+            // these are only possible because the compiler outputs a small subset of x86_64
             for(size_t i = 0; i < block.size(); ++i) { 
                 switch(block[i]) {
                     case 0x48:
