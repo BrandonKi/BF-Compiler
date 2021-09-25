@@ -1,6 +1,8 @@
 # BF-Compiler
 Compiler for Brainfuck https://en.wikipedia.org/wiki/Brainfuck
 
+Does basic optimizations. Such as removing redundant instructions and combining multiple instructions into one.
+
 Overflow/Underflow are undefined.
 Programs that rely on overflow/underflow behavior can only be ran in interpreted mode.
 
